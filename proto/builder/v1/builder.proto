@@ -1,0 +1,107 @@
+syntax="proto3";
+
+package boxygen.builder.v1;
+
+option go_package = "builder/v1";
+
+service Builder {
+	rpc Add (AddRequest) returns (AddResponse);
+	rpc Commit(CommitRequest) returns (CommitResponse);
+	rpc Config(ConfigRequest) returns (ConfigResponse);
+	rpc Copy(CopyRequest) returns(CopyResponse);
+	rpc From(FromRequest) returns(FromResponse);
+	rpc Run(RunRequest) returns(RunResponse);
+}
+
+message Container {
+	string id = 1;
+}
+
+message AddRequest {
+	// args
+	Container container = 1;
+	string src = 2;
+	string dest = 3;
+
+	// options
+	int32 chmod = 10;
+	string chown = 11;
+	string context_dir = 12;
+	string from = 13;
+	string ignore_file = 14; 
+}
+
+message AddResponse {}
+
+message CommitRequest {
+	// args
+	Container container = 1;
+	string tag = 2;
+
+	// options
+}
+
+message CommitResponse {}
+
+message ConfigRequest {
+	// args
+	Container container = 1;
+
+	// options
+	bool add_history = 10;
+	map<string, string> annotation = 11;
+	string arch = 12;
+	repeated string cmd = 13;
+	string comment = 14;
+	string created_by = 15;
+	repeated string entrypoint = 16;
+	// TODO: This should be a pair
+	map<string, string> env = 17;
+
+	repeated int32 port = 18;
+
+	string stop_signal = 19;
+
+	string user = 20;
+
+	repeated string volume = 21;
+
+	string working_dir = 22;
+}
+
+message ConfigResponse {}
+
+message CopyRequest {
+	// args
+	Container container = 1;
+	string source = 2;
+	string dest = 3;
+
+	// options
+	int32 chmod = 4;
+	string chould = 5;
+	string context_dir = 6;
+	string from = 7;
+	string ignore_file = 8;
+}
+
+message CopyResponse {}
+
+message FromRequest {
+	// args
+	string image = 1;
+
+	// options
+	// TODO: Add options
+}
+
+message FromResponse {
+	Container container = 1;
+}
+
+message RunRequest {
+	Container container = 1;
+	repeated string command = 2;
+}
+
+message RunResponse {}
