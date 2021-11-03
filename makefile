@@ -11,9 +11,9 @@ generate-proto:
 	@mkdir -p ./pkg/proto
 	@protoc --go_out=./pkg/proto --go-grpc_out=./pkg/proto -I ./proto ./proto/*/**/*.proto
 
-build:
+build: generate-proto
 	@CGO_ENABLED=0 go build -tags containers_image_openpgp -o bin/boxygen -ldflags="-extldflags=-static" ./cmd/docker/run.go
 
 build-docker:
-	@docker build . -f docker/docker/Dockerfile -t boxygen
+	@DOCKER_BUILDKIT=1 docker build . -f docker/docker/Dockerfile -t nitrictech/boxygen
 	
