@@ -24,11 +24,7 @@ message AddRequest {
 	string dest = 3;
 
 	// options
-	int32 chmod = 10;
-	string chown = 11;
-	string context_dir = 12;
-	string from = 13;
-	string ignore_file = 14; 
+	string from = 10;
 }
 
 message AddResponse {}
@@ -48,25 +44,13 @@ message ConfigRequest {
 	Container container = 1;
 
 	// options
-	bool add_history = 10;
-	map<string, string> annotation = 11;
-	string arch = 12;
-	repeated string cmd = 13;
-	string comment = 14;
-	string created_by = 15;
-	repeated string entrypoint = 16;
-	// TODO: This should be a pair
-	map<string, string> env = 17;
-
-	repeated int32 port = 18;
-
-	string stop_signal = 19;
-
-	string user = 20;
-
-	repeated string volume = 21;
-
-	string working_dir = 22;
+	repeated string entrypoint = 10;
+	repeated string cmd = 11;
+	string working_dir = 12;
+	string user = 13;
+	map<string, string> env = 14;
+	repeated int32 ports = 15;
+	repeated string volumes = 16;
 }
 
 message ConfigResponse {}
@@ -78,11 +62,7 @@ message CopyRequest {
 	string dest = 3;
 
 	// options
-	int32 chmod = 4;
-	string chould = 5;
-	string context_dir = 6;
-	string from = 7;
-	string ignore_file = 8;
+	string from = 10;
 }
 
 message CopyResponse {}
@@ -92,7 +72,7 @@ message FromRequest {
 	string image = 1;
 
 	// options
-	// TODO: Add options
+	string ignore_file = 10;
 }
 
 message FromResponse {
