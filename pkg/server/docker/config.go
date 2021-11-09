@@ -15,7 +15,6 @@
 package docker_server
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -25,36 +24,36 @@ import (
 )
 
 // Add
-func (b *BuilderServer) Config(ctx context.Context, r *v1.ConfigRequest) (*v1.ConfigResponse, error) {
+func (b *BuilderServer) Config(r *v1.ConfigRequest, srv v1.Builder_ConfigServer) error {
 	cs, err := b.store.Get(r.Container.Id)
 
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
+		return status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
 	}
 
 	if r.User != "" {
-		cs.AddLine(fmt.Sprintf("USER %s", r.User))
+		appendAndLog(fmt.Sprintf("USER %s", r.User), cs, srv)
 	}
 
 	for _, volume := range r.Volumes {
-		cs.AddLine(fmt.Sprintf("VOLUME %s", volume))
+		appendAndLog(fmt.Sprintf("VOLUME %s", volume), cs, srv)
 	}
 
 	for _, port := range r.Ports {
-		cs.AddLine(fmt.Sprintf("EXPOSE %d", port))
+		appendAndLog(fmt.Sprintf("EXPOSE %d", port), cs, srv)
 	}
 
 	for k, v := range r.Env {
-		cs.AddLine(fmt.Sprintf("ENV %s=%s", k, v))
+		appendAndLog(fmt.Sprintf("ENV %s=%s", k, v), cs, srv)
 	}
 
 	if len(r.Entrypoint) > 0 {
-		cs.AddLine(fmt.Sprintf("ENTRYPOINT [\"%s\"]", strings.Join(r.Entrypoint, "\", \"")))
+		appendAndLog(fmt.Sprintf("ENTRYPOINT [\"%s\"]", strings.Join(r.Entrypoint, "\", \"")), cs, srv)
 	}
 
 	if len(r.Cmd) > 0 {
-		cs.AddLine(fmt.Sprintf("CMD [\"%s\"]", strings.Join(r.Cmd, "\", \"")))
+		appendAndLog(fmt.Sprintf("CMD [\"%s\"]", strings.Join(r.Cmd, "\", \"")), cs, srv)
 	}
 
-	return &v1.ConfigResponse{}, nil
+	return nil
 }

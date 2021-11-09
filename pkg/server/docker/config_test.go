@@ -17,6 +17,8 @@ package docker_server
 import (
 	"context"
 
+	"github.com/golang/mock/gomock"
+	mock_v1 "github.com/nitrictech/boxygen/mocks/proto"
 	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,11 +30,11 @@ var _ = Describe("Config", func() {
 	Context("When the container does not exist", func() {
 		srv := New()
 
-		_, err := srv.Config(context.TODO(), &v1.ConfigRequest{
+		err := srv.Config(&v1.ConfigRequest{
 			Container: &v1.Container{
 				Id: "test",
 			},
-		})
+		}, nil)
 
 		It("should return an error", func() {
 			Expect(err).Should(HaveOccurred())
@@ -41,7 +43,31 @@ var _ = Describe("Config", func() {
 
 	Context("When the container exists", func() {
 		Context("Entrypoint", func() {
+			srv := New()
+			iSrv := srv.(*BuilderServer)
+			store := iSrv.store.(*containerStateStoreImpl)
+			ctrl := gomock.NewController(GinkgoT())
+			mockStr := mock_v1.NewMockBuilder_ConfigServer(ctrl)
 
+			resp, _ := srv.From(context.TODO(), &v1.FromRequest{
+				Image: "alpine",
+			})
+
+			By("logging out the entrypoint line append")
+			mockStr.EXPECT().Send(gomock.Any())
+
+			err := srv.Config(&v1.ConfigRequest{
+				Container: &v1.Container{
+					Id: resp.Container.Id,
+				},
+				Entrypoint: []string{"echo"},
+			}, mockStr)
+
+			By("not returning an error")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("updating the container store")
+			Expect(store.store[resp.Container.Id].Lines()[1]).To(Equal("ENTRYPOINT [\"echo\"]"))
 		})
 
 		Context("Cmd", func() {

@@ -17,7 +17,12 @@ package docker_server
 import (
 	"github.com/nitrictech/boxygen/pkg/common"
 	pb "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
+	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
 )
+
+type BuilderPbServer interface {
+	Send(*v1.OutputResponse) error
+}
 
 type BuilderServer struct {
 	workspace string

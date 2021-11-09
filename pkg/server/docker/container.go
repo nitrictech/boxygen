@@ -14,11 +14,18 @@
 
 package docker_server
 
+import (
+	"fmt"
+
+	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
+)
+
 type ContainerState interface {
 	Name() string
 	Lines() []string
 	// TODO: We will want to replace this with a more op/args model to translate better between more types of container file formats
 	AddLine(line string)
+	LogLine(line string) string
 	AddDependency(name string)
 	Dependencies() []string
 }
@@ -49,6 +56,10 @@ func (c *containerStateImpl) AddLine(line string) {
 	c.lines = append(c.lines, line)
 }
 
+func (c *containerStateImpl) LogLine(line string) string {
+	return fmt.Sprintf("Append [%s] to container %s", line, c.Name())
+}
+
 func (c *containerStateImpl) AddDependency(name string) {
 	if c.dependsOn == nil {
 		c.dependsOn = make([]string, 0)
@@ -63,4 +74,11 @@ func (c *containerStateImpl) Dependencies() []string {
 	}
 
 	return c.dependsOn
+}
+
+func appendAndLog(line string, cs ContainerState, srv BuilderPbServer) {
+	cs.AddLine(line)
+	srv.Send(&v1.OutputResponse{
+		Log: []string{cs.LogLine(line)},
+	})
 }

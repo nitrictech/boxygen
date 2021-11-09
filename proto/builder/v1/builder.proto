@@ -5,16 +5,21 @@ package boxygen.builder.v1;
 option go_package = "builder/v1";
 
 service Builder {
-	rpc Add (AddRequest) returns (AddResponse);
-	rpc Commit(CommitRequest) returns (CommitResponse);
-	rpc Config(ConfigRequest) returns (ConfigResponse);
-	rpc Copy(CopyRequest) returns(CopyResponse);
+	rpc Add (AddRequest) returns (stream OutputResponse);
+	rpc Commit(CommitRequest) returns (stream OutputResponse);
+	rpc Config(ConfigRequest) returns (stream OutputResponse);
+	rpc Copy(CopyRequest) returns (stream OutputResponse);
 	rpc From(FromRequest) returns(FromResponse);
-	rpc Run(RunRequest) returns(RunResponse);
+	rpc Run(RunRequest) returns(stream OutputResponse);
 }
 
 message Container {
 	string id = 1;
+}
+
+// Logs output from a given action
+message OutputResponse {
+	repeated string log = 1;
 }
 
 message AddRequest {
@@ -27,8 +32,6 @@ message AddRequest {
 	string from = 10;
 }
 
-message AddResponse {}
-
 message CommitRequest {
 	// args
 	Container container = 1;
@@ -36,8 +39,6 @@ message CommitRequest {
 
 	// options
 }
-
-message CommitResponse {}
 
 message ConfigRequest {
 	// args
@@ -53,8 +54,6 @@ message ConfigRequest {
 	repeated string volumes = 16;
 }
 
-message ConfigResponse {}
-
 message CopyRequest {
 	// args
 	Container container = 1;
@@ -64,8 +63,6 @@ message CopyRequest {
 	// options
 	string from = 10;
 }
-
-message CopyResponse {}
 
 message FromRequest {
 	// args
@@ -83,5 +80,3 @@ message RunRequest {
 	Container container = 1;
 	repeated string command = 2;
 }
-
-message RunResponse {}

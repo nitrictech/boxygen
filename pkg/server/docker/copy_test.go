@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/golang/mock/gomock"
+	mock_v1 "github.com/nitrictech/boxygen/mocks/proto"
 	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,102 +32,112 @@ var _ = Describe("Copy", func() {
 		When("specified container does not exist", func() {
 			srv := New()
 
-			r, err := srv.Copy(context.TODO(), &v1.CopyRequest{
+			err := srv.Copy(&v1.CopyRequest{
 				Container: &v1.Container{
 					Id: "test",
 				},
 				Source: "test.txt",
 				Dest:   "test.txt",
-			})
+			}, nil)
 
 			It("should return an error", func() {
 				Expect(err).Should(HaveOccurred())
 			})
-
-			It("should return a nil response", func() {
-				Expect(r).To(BeNil())
-			})
 		})
 
 		When("copying from the workspace", func() {
-			srv := New()
-			iSrv := srv.(*BuilderServer)
-
-			resp, _ := srv.From(context.TODO(), &v1.FromRequest{
-				Image: "alpine",
-			})
-
-			_, err := srv.Copy(context.TODO(), &v1.CopyRequest{
-				Container: &v1.Container{
-					Id: resp.Container.Id,
-				},
-				Source: "test.txt",
-				Dest:   "test.txt",
-			})
-
-			It("should return an error", func() {
-				Expect(err).ShouldNot(HaveOccurred())
-			})
-
-			It("should add a COPY line to the working container", func() {
-				c, _ := iSrv.store.Get(resp.Container.Id)
-				Expect(c.Lines()[1]).To(Equal("COPY /workspace/test.txt test.txt"))
-			})
-		})
-
-		When("copying from a previous stage", func() {
-			When("the stage exists", func() {
+			It("should successfully append a COPY line", func() {
 				srv := New()
 				iSrv := srv.(*BuilderServer)
-
-				resp1, _ := srv.From(context.TODO(), &v1.FromRequest{
-					Image: "golang:alpine",
-				})
-
-				resp2, _ := srv.From(context.TODO(), &v1.FromRequest{
-					Image: "alpine",
-				})
-
-				_, err := srv.Copy(context.TODO(), &v1.CopyRequest{
-					Container: &v1.Container{
-						Id: resp2.Container.Id,
-					},
-					From:   resp1.Container.Id,
-					Source: "test.txt",
-					Dest:   "test.txt",
-				})
-
-				It("should not return an error", func() {
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				It("should add a COPY line to the working container", func() {
-					c, _ := iSrv.store.Get(resp2.Container.Id)
-					Expect(c.Lines()[1]).To(Equal(fmt.Sprintf("COPY --from layer-%s test.txt test.txt", resp1.Container.Id)))
-				})
-			})
-
-			When("the stage does not exist", func() {
-				srv := New()
+				ctrl := gomock.NewController(GinkgoT())
+				mockStr := mock_v1.NewMockBuilder_CopyServer(ctrl)
 
 				resp, _ := srv.From(context.TODO(), &v1.FromRequest{
 					Image: "alpine",
 				})
 
-				_, err := srv.Copy(context.TODO(), &v1.CopyRequest{
+				By("logging out the COPY append")
+				mockStr.EXPECT().Send(gomock.Any())
+
+				err := srv.Copy(&v1.CopyRequest{
 					Container: &v1.Container{
 						Id: resp.Container.Id,
 					},
-					From:   "test",
 					Source: "test.txt",
 					Dest:   "test.txt",
-				})
+				}, mockStr)
 
-				It("should return an error", func() {
-					Expect(err).Should(HaveOccurred())
+				By("not returning an error")
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("adding a COPY line to the working container")
+				c, _ := iSrv.store.Get(resp.Container.Id)
+				Expect(c.Lines()[1]).To(Equal("COPY /workspace/test.txt test.txt"))
+
+				ctrl.Finish()
+			})
+		})
+
+		When("copying from a previous stage", func() {
+			When("the stage exists", func() {
+				It("should successfully append the copy line", func() {
+					srv := New()
+					iSrv := srv.(*BuilderServer)
+					ctrl := gomock.NewController(GinkgoT())
+					mockStr := mock_v1.NewMockBuilder_CopyServer(ctrl)
+
+					resp1, _ := srv.From(context.TODO(), &v1.FromRequest{
+						Image: "golang:alpine",
+					})
+
+					resp2, _ := srv.From(context.TODO(), &v1.FromRequest{
+						Image: "alpine",
+					})
+
+					By("logging out the COPY append")
+					mockStr.EXPECT().Send(gomock.Any())
+
+					err := srv.Copy(&v1.CopyRequest{
+						Container: &v1.Container{
+							Id: resp2.Container.Id,
+						},
+						From:   resp1.Container.Id,
+						Source: "test.txt",
+						Dest:   "test.txt",
+					}, mockStr)
+
+					By("not returning an error")
+					Expect(err).ShouldNot(HaveOccurred())
+
+					By("appending a COPY line to the container state")
+					c, _ := iSrv.store.Get(resp2.Container.Id)
+					Expect(c.Lines()[1]).To(Equal(fmt.Sprintf("COPY --from layer-%s test.txt test.txt", resp1.Container.Id)))
+
+					ctrl.Finish()
 				})
 			})
 
+			When("the stage does not exist", func() {
+				It("should return an error", func() {
+					srv := New()
+
+					resp, _ := srv.From(context.TODO(), &v1.FromRequest{
+						Image: "alpine",
+					})
+
+					err := srv.Copy(&v1.CopyRequest{
+						Container: &v1.Container{
+							Id: resp.Container.Id,
+						},
+						From:   "test",
+						Source: "test.txt",
+						Dest:   "test.txt",
+					}, nil)
+
+					By("returning an error")
+					Expect(err).Should(HaveOccurred())
+				})
+			})
 		})
 	})
 })

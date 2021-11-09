@@ -15,7 +15,6 @@
 package docker_server
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -27,17 +26,35 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type serverWriter struct {
+	srv v1.Builder_CommitServer
+}
+
+func (sw *serverWriter) Write(b []byte) (int, error) {
+	logStr := string(b)
+	logout := strings.Split(logStr, "\n")
+
+	if err := sw.srv.Send(&v1.OutputResponse{
+		Log: logout,
+	}); err != nil {
+		return 0, err
+	}
+
+	return len(b), nil
+}
+
 // Add
-func (b *BuilderServer) Commit(ctx context.Context, r *v1.CommitRequest) (*v1.CommitResponse, error) {
+func (b *BuilderServer) Commit(r *v1.CommitRequest, srv v1.Builder_CommitServer) error {
 	_, err := b.store.Get(r.Container.Id)
+	wr := &serverWriter{srv}
 
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
+		status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
 	}
 
 	lines, err := b.store.Compile(r.Container.Id, nil)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "error creating container descriptor: %s", err.Error())
+		status.Errorf(codes.Internal, "error creating container descriptor: %s", err.Error())
 	}
 
 	tmpDir := os.Getenv("BOXYGEN_TMP_DIR")
@@ -54,7 +71,7 @@ func (b *BuilderServer) Commit(ctx context.Context, r *v1.CommitRequest) (*v1.Co
 	}()
 
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "error creating temporary file: %s", err.Error())
+		return status.Errorf(codes.Internal, "error creating temporary file: %s", err.Error())
 	}
 
 	content := strings.Join(lines, "\n")
@@ -62,24 +79,19 @@ func (b *BuilderServer) Commit(ctx context.Context, r *v1.CommitRequest) (*v1.Co
 	// Write the temporary file
 	file.Write([]byte(content))
 
-	wkspc := os.Getenv("BOXYGEN_WORKSPACE")
-
-	if wkspc == "" {
-		wkspc = "/workspace/"
-	}
-
 	// Run docker build and pipe output
-	// TODO: Add Podman compatibility
-	cmd := exec.Command("docker", "build", wkspc, "-f", file.Name(), "-t", r.Tag)
+	// TODO: Add Podman support
+	cmd := exec.Command("docker", "build", b.workspace, "-f", file.Name(), "-t", r.Tag)
 	// Run with buildkit
 	cmd.Env = append(cmd.Env, "DOCKER_BUILDKIT=1")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+
+	cmd.Stdout = wr
+	cmd.Stderr = wr
 
 	err = cmd.Run()
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "error building image: %s", err.Error())
+		return status.Errorf(codes.Internal, "error building image: %s", err.Error())
 	}
 
-	return &v1.CommitResponse{}, nil
+	return nil
 }

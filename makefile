@@ -15,6 +15,11 @@ generate-proto:
 	@mkdir -p ./pkg/proto
 	@protoc --go_out=./pkg/proto --go-grpc_out=./pkg/proto -I ./proto ./proto/*/**/*.proto
 
+generate-mocks: install-tools generate-proto
+	@echo Generating mocks
+	@mkdir -p ./mocks/proto
+	@go run github.com/golang/mock/mockgen github.com/nitrictech/boxygen/pkg/proto/builder/v1 Builder_AddServer,Builder_ConfigServer,Builder_CopyServer,Builder_RunServer > mocks/proto/mock.go
+
 build: generate-proto
 	@CGO_ENABLED=0 go build -tags containers_image_openpgp -o bin/boxygen -ldflags="-extldflags=-static" ./cmd/docker/run.go
 

@@ -16,26 +16,27 @@ package docker_server
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/golang/mock/gomock"
+	mock_v1 "github.com/nitrictech/boxygen/mocks/proto"
 	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Add", func() {
-	// Create a new builder server
-
 	Context("adding a file to a working container", func() {
 		When("the container does not exist", func() {
 			srv := New()
 
-			_, err := srv.Add(context.TODO(), &v1.AddRequest{
+			err := srv.Add(&v1.AddRequest{
 				Container: &v1.Container{
 					Id: "test",
 				},
 				Src:  "https://example.com/index.html",
 				Dest: "index.html",
-			})
+			}, nil)
 
 			It("should return an error", func() {
 				Expect(err).Should(HaveOccurred())
@@ -43,30 +44,43 @@ var _ = Describe("Add", func() {
 		})
 
 		When("the container exists", func() {
-			srv := New()
-			iSrv := srv.(*BuilderServer)
 
-			resp, _ := srv.From(context.TODO(), &v1.FromRequest{
-				Image: "alpine",
-			})
+			It("should append ADD to the containers state", func() {
+				srv := New()
+				iSrv := srv.(*BuilderServer)
 
-			_, err := srv.Add(context.TODO(), &v1.AddRequest{
-				Container: &v1.Container{
-					Id: resp.Container.Id,
-				},
-				Src:  "https://example.com/index.html",
-				Dest: "index.html",
-			})
+				ctrl := gomock.NewController(GinkgoT())
+				mockStr := mock_v1.NewMockBuilder_AddServer(ctrl)
 
-			It("should not return an error", func() {
+				resp, _ := srv.From(context.TODO(), &v1.FromRequest{
+					Image: "alpine",
+				})
+
+				By("Logging out line append")
+				mockStr.EXPECT().Send(&v1.OutputResponse{
+					Log: []string{
+						fmt.Sprintf("Append [ADD https://example.com/index.html index.html] to container %s", resp.Container.Id),
+					},
+				})
+
+				err := srv.Add(&v1.AddRequest{
+					Container: &v1.Container{
+						Id: resp.Container.Id,
+					},
+					Src:  "https://example.com/index.html",
+					Dest: "index.html",
+				}, mockStr)
+
+				By("Not returning an error")
 				Expect(err).ShouldNot(HaveOccurred())
-			})
 
-			It("should add an ADD line to the working container", func() {
+				By("Updating the container state store")
 				con, _ := iSrv.store.Get(resp.Container.Id)
-
 				Expect(con.Lines()[1]).To(Equal("ADD https://example.com/index.html index.html"))
+
+				ctrl.Finish()
 			})
+
 		})
 	})
 })

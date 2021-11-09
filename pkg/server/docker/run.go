@@ -15,7 +15,6 @@
 package docker_server
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -25,16 +24,16 @@ import (
 )
 
 // Add
-func (b *BuilderServer) Run(ctx context.Context, r *v1.RunRequest) (*v1.RunResponse, error) {
+func (b *BuilderServer) Run(r *v1.RunRequest, srv v1.Builder_RunServer) error {
 	cs, err := b.store.Get(r.Container.Id)
 
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
+		return status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
 	}
 
 	// Load the container file state to append to ready to commit
-	cs.AddLine(fmt.Sprintf("RUN %s", strings.Join(r.GetCommand(), " ")))
+	appendAndLog(fmt.Sprintf("RUN %s", strings.Join(r.GetCommand(), " ")), cs, srv)
 
 	// Append line to the container context
-	return &v1.RunResponse{}, nil
+	return nil
 }
