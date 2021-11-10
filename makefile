@@ -6,11 +6,11 @@ install-tools: install
 	@echo Installing tools from tools.go
 	@cat ./tools/tools.go | grep _ | awk -F'"' '{print $$2}' | xargs -tI % go install %
 
-test:
+test: generate-proto
 	@echo Running Tests
 	@go run github.com/onsi/ginkgo/ginkgo ./pkg/...
 
-generate-proto:
+generate-proto: install-tools
 	@echo Generating Proto Sources
 	@mkdir -p ./pkg/proto
 	@protoc --go_out=./pkg/proto --go-grpc_out=./pkg/proto -I ./proto ./proto/*/**/*.proto
