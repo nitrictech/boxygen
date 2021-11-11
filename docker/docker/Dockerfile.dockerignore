@@ -1,0 +1,6 @@
+# Ignore binaries
+bin/
+# Ignore .git
+.git/
+# Ignore generated proto sources
+pkg/proto/

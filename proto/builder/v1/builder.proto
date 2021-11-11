@@ -1,0 +1,82 @@
+syntax="proto3";
+
+package boxygen.builder.v1;
+
+option go_package = "builder/v1";
+
+service Builder {
+	rpc Add (AddRequest) returns (stream OutputResponse);
+	rpc Commit(CommitRequest) returns (stream OutputResponse);
+	rpc Config(ConfigRequest) returns (stream OutputResponse);
+	rpc Copy(CopyRequest) returns (stream OutputResponse);
+	rpc From(FromRequest) returns(FromResponse);
+	rpc Run(RunRequest) returns(stream OutputResponse);
+}
+
+message Container {
+	string id = 1;
+}
+
+// Logs output from a given action
+message OutputResponse {
+	repeated string log = 1;
+}
+
+message AddRequest {
+	// args
+	Container container = 1;
+	string src = 2;
+	string dest = 3;
+
+	// options
+	string from = 10;
+}
+
+message CommitRequest {
+	// args
+	Container container = 1;
+	string tag = 2;
+
+	// options
+}
+
+message ConfigRequest {
+	// args
+	Container container = 1;
+
+	// options
+	repeated string entrypoint = 10;
+	repeated string cmd = 11;
+	string working_dir = 12;
+	string user = 13;
+	map<string, string> env = 14;
+	repeated int32 ports = 15;
+	repeated string volumes = 16;
+}
+
+message CopyRequest {
+	// args
+	Container container = 1;
+	string source = 2;
+	string dest = 3;
+
+	// options
+	string from = 10;
+}
+
+message FromRequest {
+	// args
+	string image = 1;
+
+	// options
+	string ignore_file = 10;
+}
+
+message FromResponse {
+	Container container = 1;
+}
+
+message RunRequest {
+	Container container = 1;
+	repeated string command = 2;
+}
