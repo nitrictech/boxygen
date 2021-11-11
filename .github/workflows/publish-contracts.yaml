@@ -35,7 +35,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.NITRIC_BOT_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./contracts.tgz
-          asset_name: contracts.tgz
+          asset_path: ./proto.tgz
+          asset_name: proto.tgz
           asset_content_type: application/tar+gzip
   
