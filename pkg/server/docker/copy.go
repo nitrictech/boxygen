@@ -16,7 +16,6 @@ package docker_server
 
 import (
 	"fmt"
-	"path"
 
 	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
 	"google.golang.org/grpc/codes"
@@ -39,10 +38,10 @@ func (b *BuilderServer) Copy(r *v1.CopyRequest, srv v1.Builder_CopyServer) error
 
 		cs.AddDependency(r.From)
 
-		appendAndLog(fmt.Sprintf("COPY --from layer-%s %s %s", r.From, r.Source, r.Dest), cs, srv)
+		appendAndLog(fmt.Sprintf("COPY --from=layer-%s %s %s", r.From, r.Source, r.Dest), cs, srv)
 	} else {
 		// Workspace COPY
-		appendAndLog(fmt.Sprintf("COPY %s %s", path.Join(b.workspace, r.Source), r.Dest), cs, srv)
+		appendAndLog(fmt.Sprintf("COPY %s %s", r.Source, r.Dest), cs, srv)
 	}
 
 	return nil

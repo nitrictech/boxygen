@@ -31,6 +31,10 @@ func (b *BuilderServer) Config(r *v1.ConfigRequest, srv v1.Builder_ConfigServer)
 		return status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
 	}
 
+	if r.WorkingDir != "" {
+		appendAndLog(fmt.Sprintf("WORKDIR %s", r.WorkingDir), cs, srv)
+	}
+
 	if r.User != "" {
 		appendAndLog(fmt.Sprintf("USER %s", r.User), cs, srv)
 	}

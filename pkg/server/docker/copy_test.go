@@ -72,7 +72,7 @@ var _ = Describe("Copy", func() {
 
 				By("adding a COPY line to the working container")
 				c, _ := iSrv.store.Get(resp.Container.Id)
-				Expect(c.Lines()[1]).To(Equal("COPY /workspace/test.txt test.txt"))
+				Expect(c.Lines()[1]).To(Equal("COPY test.txt test.txt"))
 
 				ctrl.Finish()
 			})
