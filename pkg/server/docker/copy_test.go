@@ -111,7 +111,7 @@ var _ = Describe("Copy", func() {
 
 					By("appending a COPY line to the container state")
 					c, _ := iSrv.store.Get(resp2.Container.Id)
-					Expect(c.Lines()[1]).To(Equal(fmt.Sprintf("COPY --from layer-%s test.txt test.txt", resp1.Container.Id)))
+					Expect(c.Lines()[1]).To(Equal(fmt.Sprintf("COPY --from=layer-%s test.txt test.txt", resp1.Container.Id)))
 
 					ctrl.Finish()
 				})
