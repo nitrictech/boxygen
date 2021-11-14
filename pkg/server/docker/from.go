@@ -28,11 +28,14 @@ import (
 // From
 func (b *BuilderServer) From(ctx context.Context, r *v1.FromRequest) (*v1.FromResponse, error) {
 	// generate a new container ID
-	h := sha256.New()
-	h.Write([]byte(r.Image))
-	sum := h.Sum(nil)
+	var id = r.As
+	if id == "" {
+		h := sha256.New()
+		h.Write([]byte(r.Image))
+		sum := h.Sum(nil)
 
-	id := hex.EncodeToString(sum)
+		id = hex.EncodeToString(sum)
+	}
 
 	// Create a new container state
 	cs := &containerStateImpl{
