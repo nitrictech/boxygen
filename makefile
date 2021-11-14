@@ -24,7 +24,7 @@ build: generate-proto
 	@CGO_ENABLED=0 go build -tags containers_image_openpgp -o bin/boxygen -ldflags="-extldflags=-static" ./cmd/docker/run.go
 
 build-docker:
-	@DOCKER_BUILDKIT=1 docker build . -f docker/docker/Dockerfile -t nitrictech/boxygen
+	@DOCKER_BUILDKIT=1 docker build . -f docker/docker/Dockerfile -t nitrictech/boxygen-dockerfile
 
 sourcefiles := $(shell find . -type f -name "*.go")
 
