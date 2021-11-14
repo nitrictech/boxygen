@@ -69,7 +69,7 @@ message FromRequest {
 	string image = 1;
 
 	// options
-	string ignore_file = 10;
+	string as = 10;
 }
 
 message FromResponse {
