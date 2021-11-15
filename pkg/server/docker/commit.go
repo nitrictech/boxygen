@@ -45,7 +45,7 @@ func (sw *serverWriter) Write(b []byte) (int, error) {
 
 // Add
 func (b *BuilderServer) Commit(r *v1.CommitRequest, srv v1.Builder_CommitServer) error {
-	_, err := b.store.Get(r.Container.Id)
+	c, err := b.store.Get(r.Container.Id)
 	wr := &serverWriter{srv}
 
 	if err != nil {
@@ -64,20 +64,25 @@ func (b *BuilderServer) Commit(r *v1.CommitRequest, srv v1.Builder_CommitServer)
 
 	// Create a temporary file
 	file, err := ioutil.TempFile(tmpDir, fmt.Sprintf("%s.*.dockerfile", r.Tag))
+	ignoreFile, err := os.Create(fmt.Sprintf("%s.dockerignore", file.Name()))
+
 	// cleanup the temp file when we're done
 	defer func() {
 		file.Close()
+		ignoreFile.Close()
 		os.Remove(file.Name())
+		os.Remove(ignoreFile.Name())
 	}()
 
 	if err != nil {
 		return status.Errorf(codes.Internal, "error creating temporary file: %s", err.Error())
 	}
-
+	ignoreContent := strings.Join(c.Ignore(), "\n")
 	content := strings.Join(lines, "\n")
 
 	// Write the temporary file
 	file.Write([]byte(content))
+	ignoreFile.Write([]byte(ignoreContent))
 
 	// Run docker build and pipe output
 	// TODO: Add Podman support
