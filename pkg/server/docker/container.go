@@ -28,6 +28,7 @@ type ContainerState interface {
 	LogLine(line string) string
 	AddDependency(name string)
 	Dependencies() []string
+	Ignore() []string
 }
 
 // ContainerState
@@ -38,6 +39,8 @@ type containerStateImpl struct {
 	dependsOn []string
 	// lines composing this container image state
 	lines []string
+	// patterns to ignore when using file ops such as COPY
+	ignore []string
 }
 
 func (c *containerStateImpl) Name() string {
@@ -46,6 +49,10 @@ func (c *containerStateImpl) Name() string {
 
 func (c *containerStateImpl) Lines() []string {
 	return c.lines
+}
+
+func (c *containerStateImpl) Ignore() []string {
+	return c.ignore
 }
 
 func (c *containerStateImpl) AddLine(line string) {

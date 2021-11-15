@@ -42,6 +42,7 @@ func (b *BuilderServer) From(ctx context.Context, r *v1.FromRequest) (*v1.FromRe
 		name:      id,
 		dependsOn: make([]string, 0),
 		lines:     make([]string, 0),
+		ignore:    r.Ignore,
 	}
 
 	// The user has provided another container state as a dependency

@@ -67,9 +67,11 @@ message CopyRequest {
 message FromRequest {
 	// args
 	string image = 1;
-
 	// options
+	// set the state id of this working container
 	string as = 10;
+	// set files to ignore from the workspace (used in operations like copy)
+	repeated string ignore = 11;
 }
 
 message FromResponse {
