@@ -1,5 +1,5 @@
 <div align="center">
-	<img src="./assets/boxygen-logo.svg" alt="boxygen logo">
+	<img src="./assets/boxygen-logo.png" alt="boxygen logo">
 	<br/>
 	<a href="https://hub.docker.com/r/nitrictech/boxygen-dockerfile"><img src="https://img.shields.io/docker/pulls/nitrictech/boxygen-dockerfile"/></a>
 	<a href="https://codecov.io/gh/nitrictech/boxygen">
