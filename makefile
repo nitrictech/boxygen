@@ -8,7 +8,7 @@ install-tools: install
 
 test: generate-proto
 	@echo Running Tests
-	@go run github.com/onsi/ginkgo/ginkgo ./pkg/...
+	@go run github.com/onsi/ginkgo/ginkgo -cover -outputdir=./ -coverprofile=all.coverprofile ./pkg/...
 
 generate-proto: install-tools
 	@echo Generating Proto Sources
