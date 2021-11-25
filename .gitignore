@@ -17,3 +17,5 @@
 pkg/proto/
 
 bin/
+
+**/*.coverprofile

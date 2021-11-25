@@ -26,14 +26,13 @@ jobs:
     - name: Check Source License Headers
       run: make license-header-check
     - name: Run Tests
-      run: make test     
+      run: make test
+    - name: Upload Coverage Report
+      uses: codecov/codecov-action@v2
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+        files: all.coverprofile # optional
+        flags: unittests # optional
+        fail_ci_if_error: true # optional (default = false) 
     #- name: Check Dependency Licenses
     #  run: make license-check
-    # Upload coverage report if main is set
-    #- name: Upload Coverage Report
-    #  uses: codecov/codecov-action@v2
-    #  with:
-    #    token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-    #    files: all.coverprofile # optional
-    #    flags: unittests # optional
-    #    fail_ci_if_error: true # optional (default = false)
