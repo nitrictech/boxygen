@@ -15,12 +15,18 @@
 package docker_server
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
+	"path/filepath"
 	"strings"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/docker/docker/pkg/term"
 	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -32,10 +38,9 @@ type serverWriter struct {
 
 func (sw *serverWriter) Write(b []byte) (int, error) {
 	logStr := string(b)
-	logout := strings.Split(logStr, "\n")
 
 	if err := sw.srv.Send(&v1.OutputResponse{
-		Log: logout,
+		Log: []string{logStr},
 	}); err != nil {
 		return 0, err
 	}
@@ -46,7 +51,14 @@ func (sw *serverWriter) Write(b []byte) (int, error) {
 // Add
 func (b *BuilderServer) Commit(r *v1.CommitRequest, srv v1.Builder_CommitServer) error {
 	c, err := b.store.Get(r.Container.Id)
+
+	if err != nil {
+		return status.Errorf(codes.NotFound, "container state not found for: %s", r.Container.Id)
+	}
+
 	wr := &serverWriter{srv}
+
+	cl, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 
 	if err != nil {
 		status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
@@ -57,13 +69,8 @@ func (b *BuilderServer) Commit(r *v1.CommitRequest, srv v1.Builder_CommitServer)
 		status.Errorf(codes.Internal, "error creating container descriptor: %s", err.Error())
 	}
 
-	tmpDir := os.Getenv("BOXYGEN_TMP_DIR")
-	if tmpDir == "" {
-		tmpDir = "/tmp/"
-	}
-
 	// Create a temporary file
-	file, err := ioutil.TempFile(tmpDir, fmt.Sprintf("%s.*.dockerfile", r.Tag))
+	file, _ := ioutil.TempFile(b.workspace, fmt.Sprintf("%s.*.dockerfile", r.Tag))
 	ignoreFile, err := os.Create(fmt.Sprintf("%s.dockerignore", file.Name()))
 
 	// cleanup the temp file when we're done
@@ -84,19 +91,25 @@ func (b *BuilderServer) Commit(r *v1.CommitRequest, srv v1.Builder_CommitServer)
 	file.Write([]byte(content))
 	ignoreFile.Write([]byte(ignoreContent))
 
-	// Run docker build and pipe output
-	// TODO: Add Podman support
-	cmd := exec.Command("docker", "build", b.workspace, "-f", file.Name(), "-t", r.Tag)
-	// Run with buildkit
-	cmd.Env = append(cmd.Env, "DOCKER_BUILDKIT=1")
+	rc, err := archive.TarWithOptions(b.workspace, &archive.TarOptions{})
 
-	cmd.Stdout = wr
-	cmd.Stderr = wr
+	if err != nil {
+		return status.Errorf(codes.Internal, "error tarballing workspace: %s", err.Error())
+	}
 
-	err = cmd.Run()
+	resp, err := cl.ImageBuild(context.TODO(), rc, types.ImageBuildOptions{
+		Dockerfile: filepath.Base(file.Name()),
+		Tags:       []string{r.Tag},
+	})
+
 	if err != nil {
 		return status.Errorf(codes.Internal, "error building image: %s", err.Error())
 	}
+
+	defer resp.Body.Close()
+
+	termFs, isTerm := term.GetFdInfo(os.Stderr)
+	jsonmessage.DisplayJSONMessagesStream(resp.Body, wr, termFs, isTerm, nil)
 
 	return nil
 }
