@@ -13,7 +13,7 @@ COPY . .
 
 RUN make build
 
-FROM docker:dind
+FROM alpine
 
 COPY --from=build /app/bin/boxygen /boxygen
 RUN chmod +rx /boxygen
