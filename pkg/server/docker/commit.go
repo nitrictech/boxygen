@@ -98,6 +98,7 @@ func (b *BuilderServer) Commit(r *v1.CommitRequest, srv v1.Builder_CommitServer)
 	}
 
 	resp, err := cl.ImageBuild(context.TODO(), rc, types.ImageBuildOptions{
+		Version:    types.BuilderBuildKit,
 		Dockerfile: filepath.Base(file.Name()),
 		Tags:       []string{r.Tag},
 	})
