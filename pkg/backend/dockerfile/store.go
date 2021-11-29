@@ -82,7 +82,7 @@ func (cs *containerStateStoreImpl) NewContainer(opts NewContainerOpts) (Containe
 
 	// Add to central container state store
 	if err := cs.Put(id, con); err != nil {
-		return nil, fmt.Errorf("Failed to add container to state store")
+		return nil, fmt.Errorf("failed to add container to state store")
 	}
 
 	return con, nil
@@ -126,7 +126,7 @@ func (cs *containerStateStoreImpl) Compile(name string, dependents []string) ([]
 		for _, n := range dependents {
 			if n == name {
 				// TODO: Provide more dependency resolution detail
-				return nil, fmt.Errorf("discovered depdency cycle in compilation, exiting")
+				return nil, fmt.Errorf("discovered dependency cycle in compilation, exiting")
 			}
 		}
 
