@@ -12,21 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package docker_server
-
-import (
-	"fmt"
-
-	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
-)
+package dockerfile
 
 type ContainerState interface {
 	Name() string
 	Lines() []string
-	// TODO: We will want to replace this with a more op/args model to translate better between more types of container file formats
-	AddLine(line string)
-	LogLine(line string) string
-	AddDependency(name string)
+
+	Add(AddOptions)
+	Copy(CopyOptions) error
+	Config(ConfigOptions)
+	Run(RunOptions)
+	addDependency(name string)
 	Dependencies() []string
 	Ignore() []string
 }
@@ -41,6 +37,8 @@ type containerStateImpl struct {
 	lines []string
 	// patterns to ignore when using file ops such as COPY
 	ignore []string
+	// a back reference parent store for this container
+	store ContainerStateStore
 }
 
 func (c *containerStateImpl) Name() string {
@@ -55,7 +53,7 @@ func (c *containerStateImpl) Ignore() []string {
 	return c.ignore
 }
 
-func (c *containerStateImpl) AddLine(line string) {
+func (c *containerStateImpl) addLine(line string) {
 	if c.lines == nil {
 		c.lines = make([]string, 0)
 	}
@@ -63,11 +61,7 @@ func (c *containerStateImpl) AddLine(line string) {
 	c.lines = append(c.lines, line)
 }
 
-func (c *containerStateImpl) LogLine(line string) string {
-	return fmt.Sprintf("Append [%s] to container %s", line, c.Name())
-}
-
-func (c *containerStateImpl) AddDependency(name string) {
+func (c *containerStateImpl) addDependency(name string) {
 	if c.dependsOn == nil {
 		c.dependsOn = make([]string, 0)
 	}
@@ -81,11 +75,4 @@ func (c *containerStateImpl) Dependencies() []string {
 	}
 
 	return c.dependsOn
-}
-
-func appendAndLog(line string, cs ContainerState, srv BuilderPbServer) {
-	cs.AddLine(line)
-	srv.Send(&v1.OutputResponse{
-		Log: []string{cs.LogLine(line)},
-	})
 }

@@ -15,8 +15,7 @@
 package docker_server
 
 import (
-	"fmt"
-
+	"github.com/nitrictech/boxygen/pkg/backend/dockerfile"
 	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,18 +29,14 @@ func (b *BuilderServer) Copy(r *v1.CopyRequest, srv v1.Builder_CopyServer) error
 		return status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
 	}
 
-	if r.From != "" {
-		// add container state dependency as well
-		if !b.store.Has(r.From) {
-			return status.Errorf(codes.NotFound, "container %s does not exist", r.From)
-		}
+	err = cs.Copy(dockerfile.CopyOptions{
+		Src:  r.Source,
+		Dest: r.Dest,
+		From: r.From,
+	})
 
-		cs.AddDependency(r.From)
-
-		appendAndLog(fmt.Sprintf("COPY --from=layer-%s %s %s", r.From, r.Source, r.Dest), cs, srv)
-	} else {
-		// Workspace COPY
-		appendAndLog(fmt.Sprintf("COPY %s %s", r.Source, r.Dest), cs, srv)
+	if err != nil {
+		return status.Error(codes.NotFound, err.Error())
 	}
 
 	return nil

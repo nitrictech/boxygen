@@ -15,8 +15,7 @@
 package docker_server
 
 import (
-	"fmt"
-
+	"github.com/nitrictech/boxygen/pkg/backend/dockerfile"
 	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,7 +29,10 @@ func (b *BuilderServer) Add(r *v1.AddRequest, srv v1.Builder_AddServer) error {
 		return status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
 	}
 
-	appendAndLog(fmt.Sprintf("ADD %s %s", r.Src, r.Dest), cs, srv)
+	cs.Add(dockerfile.AddOptions{
+		Src:  r.Src,
+		Dest: r.Dest,
+	})
 
 	return nil
 }

@@ -43,18 +43,15 @@ var _ = Describe("Run", func() {
 			It("should append a RUN line to the working container state", func() {
 				srv := New()
 				iSrv := srv.(*BuilderServer)
-				store := iSrv.store.(*containerStateStoreImpl)
+				store := iSrv.store
 				ctrl := gomock.NewController(GinkgoT())
 				mockStr := mock_v1.NewMockBuilder_RunServer(ctrl)
 				// TODO: Mock container state store
-				resp, err := srv.From(context.TODO(), &v1.FromRequest{
+				resp, _ := srv.From(context.TODO(), &v1.FromRequest{
 					Image: "alpine",
 				})
 
-				By("logging the RUN append to output")
-				mockStr.EXPECT().Send(gomock.Any())
-
-				err = srv.Run(&v1.RunRequest{
+				err := srv.Run(&v1.RunRequest{
 					Container: &v1.Container{
 						Id: resp.Container.Id,
 					},
@@ -65,7 +62,8 @@ var _ = Describe("Run", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 
 				By("appening RUN to the container state")
-				Expect(store.store[resp.Container.Id].Lines()[1]).To(Equal("RUN apk update -y"))
+				con, _ := store.Get(resp.Container.Id)
+				Expect(con.Lines()[1]).To(Equal("RUN apk update -y"))
 
 			})
 		})

@@ -15,9 +15,7 @@
 package docker_server
 
 import (
-	"fmt"
-	"strings"
-
+	"github.com/nitrictech/boxygen/pkg/backend/dockerfile"
 	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -31,8 +29,9 @@ func (b *BuilderServer) Run(r *v1.RunRequest, srv v1.Builder_RunServer) error {
 		return status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
 	}
 
-	// Load the container file state to append to ready to commit
-	appendAndLog(fmt.Sprintf("RUN %s", strings.Join(r.GetCommand(), " ")), cs, srv)
+	cs.Run(dockerfile.RunOptions{
+		Command: r.Command,
+	})
 
 	// Append line to the container context
 	return nil
