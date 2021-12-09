@@ -15,15 +15,13 @@
 package docker_server
 
 import (
-	"fmt"
-	"strings"
-
+	"github.com/nitrictech/boxygen/pkg/backend/dockerfile"
 	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-// Add
+// Config - Configures container image metadata
 func (b *BuilderServer) Config(r *v1.ConfigRequest, srv v1.Builder_ConfigServer) error {
 	cs, err := b.store.Get(r.Container.Id)
 
@@ -31,33 +29,15 @@ func (b *BuilderServer) Config(r *v1.ConfigRequest, srv v1.Builder_ConfigServer)
 		return status.Errorf(codes.NotFound, "container: %s does not exist", r.Container.Id)
 	}
 
-	if r.WorkingDir != "" {
-		appendAndLog(fmt.Sprintf("WORKDIR %s", r.WorkingDir), cs, srv)
-	}
-
-	if r.User != "" {
-		appendAndLog(fmt.Sprintf("USER %s", r.User), cs, srv)
-	}
-
-	for _, volume := range r.Volumes {
-		appendAndLog(fmt.Sprintf("VOLUME %s", volume), cs, srv)
-	}
-
-	for _, port := range r.Ports {
-		appendAndLog(fmt.Sprintf("EXPOSE %d", port), cs, srv)
-	}
-
-	for k, v := range r.Env {
-		appendAndLog(fmt.Sprintf("ENV %s=%s", k, v), cs, srv)
-	}
-
-	if len(r.Entrypoint) > 0 {
-		appendAndLog(fmt.Sprintf("ENTRYPOINT [\"%s\"]", strings.Join(r.Entrypoint, "\", \"")), cs, srv)
-	}
-
-	if len(r.Cmd) > 0 {
-		appendAndLog(fmt.Sprintf("CMD [\"%s\"]", strings.Join(r.Cmd, "\", \"")), cs, srv)
-	}
+	cs.Config(dockerfile.ConfigOptions{
+		WorkingDir: r.WorkingDir,
+		Cmd:        r.Cmd,
+		User:       r.User,
+		Volumes:    r.Volumes,
+		Ports:      r.Ports,
+		Env:        r.Env,
+		Entrypoint: r.Entrypoint,
+	})
 
 	return nil
 }

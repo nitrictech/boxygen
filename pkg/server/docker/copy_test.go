@@ -56,9 +56,6 @@ var _ = Describe("Copy", func() {
 					Image: "alpine",
 				})
 
-				By("logging out the COPY append")
-				mockStr.EXPECT().Send(gomock.Any())
-
 				err := srv.Copy(&v1.CopyRequest{
 					Container: &v1.Container{
 						Id: resp.Container.Id,
@@ -93,9 +90,6 @@ var _ = Describe("Copy", func() {
 					resp2, _ := srv.From(context.TODO(), &v1.FromRequest{
 						Image: "alpine",
 					})
-
-					By("logging out the COPY append")
-					mockStr.EXPECT().Send(gomock.Any())
 
 					err := srv.Copy(&v1.CopyRequest{
 						Container: &v1.Container{

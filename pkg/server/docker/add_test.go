@@ -16,7 +16,6 @@ package docker_server
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/golang/mock/gomock"
 	mock_v1 "github.com/nitrictech/boxygen/mocks/proto"
@@ -54,13 +53,6 @@ var _ = Describe("Add", func() {
 
 				resp, _ := srv.From(context.TODO(), &v1.FromRequest{
 					Image: "alpine",
-				})
-
-				By("Logging out line append")
-				mockStr.EXPECT().Send(&v1.OutputResponse{
-					Log: []string{
-						fmt.Sprintf("Append [ADD https://example.com/index.html index.html] to container %s", resp.Container.Id),
-					},
 				})
 
 				err := srv.Add(&v1.AddRequest{

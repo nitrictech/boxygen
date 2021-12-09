@@ -12,23 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package docker_server
+package dockerfile
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"fmt"
+	"strings"
 )
 
-var _ = Describe("New", func() {
-	// Create a new builder server
+type RunOptions struct {
+	Command []string
+}
 
-	When("Creating a new builder server", func() {
-		srv := New()
-
-		_, ok := srv.(*BuilderServer)
-
-		It("should return a BuilderServer implementation", func() {
-			Expect(ok).To(BeTrue())
-		})
-	})
-})
+func (c *containerStateImpl) Run(opts RunOptions) {
+	c.addLine(fmt.Sprintf("RUN %s", strings.Join(opts.Command, " ")))
+}

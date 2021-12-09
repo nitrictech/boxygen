@@ -45,16 +45,13 @@ var _ = Describe("Config", func() {
 		Context("Entrypoint", func() {
 			srv := New()
 			iSrv := srv.(*BuilderServer)
-			store := iSrv.store.(*containerStateStoreImpl)
+			store := iSrv.store
 			ctrl := gomock.NewController(GinkgoT())
 			mockStr := mock_v1.NewMockBuilder_ConfigServer(ctrl)
 
 			resp, _ := srv.From(context.TODO(), &v1.FromRequest{
 				Image: "alpine",
 			})
-
-			By("logging out the entrypoint line append")
-			mockStr.EXPECT().Send(gomock.Any())
 
 			err := srv.Config(&v1.ConfigRequest{
 				Container: &v1.Container{
@@ -67,7 +64,8 @@ var _ = Describe("Config", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("updating the container store")
-			Expect(store.store[resp.Container.Id].Lines()[1]).To(Equal("ENTRYPOINT [\"echo\"]"))
+			con, _ := store.Get(resp.Container.Id)
+			Expect(con.Lines()[1]).To(Equal("ENTRYPOINT [\"echo\"]"))
 		})
 
 		Context("Cmd", func() {

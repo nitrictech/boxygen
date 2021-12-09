@@ -12,30 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package docker_server
+package dockerfile
 
 import (
-	"github.com/nitrictech/boxygen/pkg/backend/dockerfile"
-	"github.com/nitrictech/boxygen/pkg/common"
-	pb "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
-	v1 "github.com/nitrictech/boxygen/pkg/proto/builder/v1"
+	"fmt"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-type BuilderPbServer interface {
-	Send(*v1.OutputResponse) error
+type CopyOptions struct {
+	Src  string
+	Dest string
+	From string
 }
 
-type BuilderServer struct {
-	workspace string
-	store     dockerfile.ContainerStateStore
-	pb.UnimplementedBuilderServer
-}
+func (c *containerStateImpl) Copy(opts CopyOptions) error {
 
-func New() pb.BuilderServer {
-	wkspc := common.GetEnv("BOXYGEN_WORKSPACE", "/workspace/")
+	if opts.From != "" {
+		// add container state dependency as well
+		if !c.store.Has(opts.From) {
+			return status.Errorf(codes.NotFound, "container %s does not exist", opts.From)
+		}
 
-	return &BuilderServer{
-		workspace: wkspc,
-		store:     dockerfile.NewStateStore(),
+		c.addDependency(opts.From)
+		c.addLine(fmt.Sprintf("COPY --from=layer-%s %s %s", opts.From, opts.Src, opts.Dest))
+	} else {
+		// Workspace COPY
+		c.addLine(fmt.Sprintf("COPY %s %s", opts.Src, opts.Dest))
 	}
+
+	return nil
 }

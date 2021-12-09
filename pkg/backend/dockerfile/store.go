@@ -12,11 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package docker_server
+package dockerfile
 
-import "fmt"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+)
 
 type ContainerStateStore interface {
+	// Create a new container in the container state store
+	NewContainer(opts NewContainerOpts) (ContainerState, error)
 	// Put a new container state
 	Put(string, ContainerState) error
 	// Get an existing container state
@@ -35,6 +41,51 @@ func (cs *containerStateStoreImpl) ensureStore() {
 	if cs.store == nil {
 		cs.store = make(map[string]ContainerState)
 	}
+}
+
+type NewContainerOpts struct {
+	From   string
+	As     string
+	Ignore []string
+}
+
+func (cs *containerStateStoreImpl) NewContainer(opts NewContainerOpts) (ContainerState, error) {
+	cs.ensureStore()
+	var id = opts.As
+	if id == "" {
+		h := sha256.New()
+		h.Write([]byte(opts.From))
+		sum := h.Sum(nil)
+
+		id = hex.EncodeToString(sum)
+	}
+
+	// Create a new container state
+	con := &containerStateImpl{
+		name:      id,
+		dependsOn: make([]string, 0),
+		lines:     make([]string, 0),
+		ignore:    opts.Ignore,
+		store:     cs,
+	}
+
+	// The user has provided another container state as a dependency
+	fromImage := opts.From
+	if cs.Has(opts.From) {
+		// The extension is another container state dependency
+		con.addDependency(opts.From)
+		fromImage = fmt.Sprintf("layer-%s", opts.From)
+	}
+
+	// Add line to container state
+	con.addLine(fmt.Sprintf("FROM %s as layer-%s", fromImage, id))
+
+	// Add to central container state store
+	if err := cs.Put(id, con); err != nil {
+		return nil, fmt.Errorf("failed to add container to state store")
+	}
+
+	return con, nil
 }
 
 func (cs *containerStateStoreImpl) Has(name string) bool {
@@ -75,7 +126,7 @@ func (cs *containerStateStoreImpl) Compile(name string, dependents []string) ([]
 		for _, n := range dependents {
 			if n == name {
 				// TODO: Provide more dependency resolution detail
-				return nil, fmt.Errorf("discovered depdency cycle in compilation, exiting")
+				return nil, fmt.Errorf("discovered dependency cycle in compilation, exiting")
 			}
 		}
 
@@ -102,4 +153,10 @@ func (cs *containerStateStoreImpl) Compile(name string, dependents []string) ([]
 	finalLines = append(finalLines, con.Lines()...)
 
 	return finalLines, nil
+}
+
+func NewStateStore() ContainerStateStore {
+	return &containerStateStoreImpl{
+		store: make(map[string]ContainerState),
+	}
 }
