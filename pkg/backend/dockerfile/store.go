@@ -49,8 +49,7 @@ type NewContainerOpts struct {
 	Ignore []string
 }
 
-func (cs *containerStateStoreImpl) NewContainer(opts NewContainerOpts) (ContainerState, error) {
-	cs.ensureStore()
+func newContainer(opts NewContainerOpts) (ContainerState, error) {
 	var id = opts.As
 	if id == "" {
 		h := sha256.New()
@@ -66,8 +65,33 @@ func (cs *containerStateStoreImpl) NewContainer(opts NewContainerOpts) (Containe
 		dependsOn: make([]string, 0),
 		lines:     make([]string, 0),
 		ignore:    opts.Ignore,
-		store:     cs,
 	}
+
+	return con, nil
+}
+
+func NewContainer(opts NewContainerOpts) (ContainerState, error) {
+	con, err := newContainer(opts)
+	if err != nil {
+		return nil, err
+	}
+	conImp := con.(*containerStateImpl)
+	if opts.From != "" && opts.As != "" {
+		conImp.addLine(fmt.Sprintf("FROM %s as %s", opts.From, opts.As))
+	} else {
+		conImp.addLine(fmt.Sprintf("FROM %s", opts.From))
+	}
+	return con, nil
+}
+
+func (cs *containerStateStoreImpl) NewContainer(opts NewContainerOpts) (ContainerState, error) {
+	cs.ensureStore()
+	con, err := newContainer(opts)
+	if err != nil {
+		return nil, err
+	}
+	conImp := con.(*containerStateImpl)
+	conImp.store = cs
 
 	// The user has provided another container state as a dependency
 	fromImage := opts.From
@@ -76,16 +100,15 @@ func (cs *containerStateStoreImpl) NewContainer(opts NewContainerOpts) (Containe
 		con.addDependency(opts.From)
 		fromImage = fmt.Sprintf("layer-%s", opts.From)
 	}
-
 	// Add line to container state
-	con.addLine(fmt.Sprintf("FROM %s as layer-%s", fromImage, id))
+	conImp.addLine(fmt.Sprintf("FROM %s as layer-%s", fromImage, con.Name()))
 
 	// Add to central container state store
-	if err := cs.Put(id, con); err != nil {
+	if err := cs.Put(con.Name(), con); err != nil {
 		return nil, fmt.Errorf("failed to add container to state store")
 	}
 
-	return con, nil
+	return con, err
 }
 
 func (cs *containerStateStoreImpl) Has(name string) bool {
