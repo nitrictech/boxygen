@@ -66,6 +66,13 @@ func (c *containerStateImpl) addDependency(name string) {
 		c.dependsOn = make([]string, 0)
 	}
 
+	// skip adding dependency if it already exists
+	for _, d := range c.dependsOn {
+		if name == d {
+			return
+		}
+	}
+
 	c.dependsOn = append(c.dependsOn, name)
 }
 
